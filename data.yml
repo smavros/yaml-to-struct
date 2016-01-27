@@ -1,0 +1,29 @@
+# data.yml file for testing libyaml event parsing
+# The data represent a 2D thin-wire coil consisted of n circular loops
+# author: smavros
+
+# general attributes
+
+cur  : 10    # current passing through each loop [A]
+freq : 1200  # frequency of excitation current [Hz]
+
+# attributes of each loop (in [m])
+
+loops:
+
+  - radius   : 0.3
+    x_center : 0.3
+    y_center : 0.0
+
+  - radius   : 0.3
+    x_center : -0.3
+    y_center : 0.0
+
+  - radius   : 0.5
+    x_center : 0.5
+    y_center : 0.0
+  
+  - radius   : 0.5
+    x_center : -0.5
+    y_center : 0.00
+
