@@ -272,7 +272,7 @@ print_data(unsigned int nlps, Coil_t *coil)
 {
     int i; /* counter */
     puts("--- data structure as parsed ---\n");
-    printf("loop_num = %d\n",coil->nloop);
+    printf("current = %d\n",coil->cur);
     printf("freq = %f\n",coil->freq);
     puts("loops");
     for (i=0;i<nlps;i++){
