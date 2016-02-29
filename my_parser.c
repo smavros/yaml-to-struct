@@ -125,7 +125,7 @@ parser(Coil_t *coil, char **argv)
         
         parse_next(&parser,&event);  /* parse new event */
         
-        /* desize what to do with each event */
+        /* decide what to do with each event */
         event_switch(&seq_status,&map_seq,coil,&parser,&event);   
         
         if ( event.type != YAML_STREAM_END_EVENT ){
