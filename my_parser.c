@@ -10,13 +10,15 @@
 
 /* types  ------------------------------------------------------------- */
 
-typedef struct coil{
-    unsigned int cur;
-    double freq;
-    double *radius;
-    double *x_center;
-    double *y_center;
-} Coil_t;
+typedef 
+    struct coil{
+        double freq;
+        double *radius;
+        double *x_center;
+        double *y_center;
+        unsigned int cur;
+    } 
+Coil_t;
 
 /* prototypes --------------------------------------------------------- */
 
@@ -216,19 +218,19 @@ to_data_from_map(char *buf, unsigned int *map_seq, Coil_t *coil,\
     char *rad = "radius";
     char *xcen = "x_center";
     char *ycen = "y_center";
-    
-    char *evb; /* event's value buffer */
-    evb = (char *) event->data.scalar.value; /* value type = yaml_char_t */
 
     if ( !strcmp(buf,rad) ){
         parse_next(parser,event);
-        coil->radius[(*map_seq)-1] = strtod(evb,&cb);
+        coil->radius[(*map_seq)-1] = 
+            strtod((char *) event->data.scalar.value, &cb);
     } else if ( !strcmp(buf,xcen) ){
         parse_next(parser,event);
-        coil->x_center[(*map_seq)-1] = strtod(evb,&cb);
+        coil->x_center[(*map_seq)-1] = 
+            strtod((char *) event->data.scalar.value, &cb);
     } else if ( !strcmp(buf,ycen) ){
         parse_next(parser,event);
-        coil->y_center[(*map_seq)-1] = strtod(evb,&cb);
+        coil->y_center[(*map_seq)-1] = 
+       	    strtod((char *) event->data.scalar.value, &cb);
     } else {
         printf("\n -ERROR: Unknow variable in config file: %s\n",buf);
         exit(EXIT_FAILURE);
@@ -271,7 +273,7 @@ void
 print_data(unsigned int nlps, Coil_t *coil)
 {
     int i; /* counter */
-    puts("--- data structure as parsed ---\n");
+    puts("--- data structure after parsing ---\n");
     printf("current = %d\n",coil->cur);
     printf("freq = %f\n",coil->freq);
     puts("loops");
