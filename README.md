@@ -2,7 +2,7 @@
 An example of data parsing to C struct from YAML file
 
 ### Scope
-This code present a way for parsing data, from a YAML format configuration file, in a C data structure, using libyaml.
+This code present a way for parsing data, from a YAML format configuration file, to a C data structure, using libyaml.
 
 ### Use
 As an example we use a configuration file which describes a 2D thin-wire coil. The coil is made from circular loops, each with 4 attributes (radius,x and y position and current flow direction). Also there are 2 global attributes for the coil (current and frequency). The executable nees one argument which denotes the number of the circular loops (yaml mappings) which are going to be parsed in the structure. After a succesfull parsing the parsed data from the structure are printed in the stdout.
