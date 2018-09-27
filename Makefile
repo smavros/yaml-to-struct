@@ -7,9 +7,9 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic -std=c99 -O2
 
-all: my_parser.x
+all: coil_parser.x
 
-my_parser.x : my_parser.c 
+coil_parser.x : coil_parser.c 
 	$(CC) $(CFLAGS) $< -lyaml -o $@
 
 clean :

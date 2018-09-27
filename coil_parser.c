@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <yaml.h>
 
-/* types  ------------------------------------------------------------- */
+/* Types  ------------------------------------------------------------- */
 
 typedef struct coil {
     double freq;
@@ -15,60 +15,64 @@ typedef struct coil {
     double* x_center;
     double* y_center;
     unsigned int cur;
-} Coil_t;
+} coil_t;
 
-/* prototypes --------------------------------------------------------- */
+/* Prototypes --------------------------------------------------------- */
 
-/* init util */
-void init_data( Coil_t* coil, char** argv );
+/* Struct initialization */
+void init_coil( coil_t* coil, char** argv );
+void realloc_coil( unsigned int nlp, coil_t* coil );
+void free_coil( coil_t* coil );
 
-/* global parser */
-unsigned int parser( Coil_t* coil, char** argv );
+/* Global parser */
+unsigned int parser( coil_t* coil, char** argv );
 
-/* parser util */
+/* Parser utilities */
 void init_prs( FILE** fh, yaml_parser_t* parser );
 void parse_next( yaml_parser_t* parser, yaml_event_t* event );
 void clean_prs( FILE** fh, yaml_parser_t* parser, yaml_event_t* event );
 
-/* parser actions */
-void event_switch( bool* seq_status, unsigned int* map_seq, Coil_t* coil,
+/* Parser actions */
+void event_switch( bool* seq_status, unsigned int* map_seq, coil_t* coil,
                    yaml_parser_t* parser, yaml_event_t* event );
-void to_data( bool* seq_status, unsigned int* map_seq, Coil_t* coil,
+void to_data( bool* seq_status, unsigned int* map_seq, coil_t* coil,
               yaml_parser_t* parser, yaml_event_t* event );
-void to_data_from_map( char* buf, unsigned int* map_seq, Coil_t* coil,
+void to_data_from_map( char* buf, unsigned int* map_seq, coil_t* coil,
                        yaml_parser_t* parser, yaml_event_t* event );
 
-/* post parsing utils */
-void parsed_loops( unsigned int* nlp, char** argv, Coil_t* coil );
-void data_realloc( unsigned int nlp, Coil_t* coil );
+/* Post parsing utilities */
+void parsed_loops( unsigned int* nlp, char** argv, coil_t* coil );
+void print_data( unsigned int nlps, coil_t* coil );
 
-/* printing */
-void print_data( unsigned int nlps, Coil_t* coil );
+/* Main --------------------------------------------------------------- */
 
-/* main --------------------------------------------------------------- */
-
-int main( int argc, char** argv )
+int
+main( int argc, char** argv )
 {
-    assert( argc == 2 );           /* check args number */
-    assert( atoi( argv[1] ) > 0 ); /* check args validity */
+    assert( argc == 2 );           /* Check args number */
+    assert( atoi( argv[1] ) > 0 ); /* Check args validity */
 
-    Coil_t coil; /* create my coil */
+    coil_t coil; /* Create my coil */
 
-    init_data( &coil, argv ); /* initialize my coil */
+    init_coil( &coil, argv ); /* Initialize my coil */
 
-    unsigned int nlp;            /* number of loops in config file */
-    nlp = parser( &coil, argv ); /* parse my coil */
+    unsigned int nlp;            /* Number of loops in config file */
+    nlp = parser( &coil, argv ); /* Parse my coil */
 
-    parsed_loops( &nlp, argv, &coil ); /* conflict warning arg-config loops */
+    /* Check if requested coil loops number is consistent with config file */
+    parsed_loops( &nlp, argv, &coil );
 
-    print_data( nlp, &coil ); /* print the parsed coil */
+    print_data( nlp, &coil );
+
+    free_coil( &coil );
 
     return EXIT_SUCCESS;
 }
 
-/* definitions -------------------------------------------------------- */
+/* Definitions -------------------------------------------------------- */
 
-void parsed_loops( unsigned int* nlp, char** argv, Coil_t* coil )
+void
+parsed_loops( unsigned int* nlp, char** argv, coil_t* coil )
 {
     if ( ( *nlp ) > atoi( argv[1] ) ) {
 
@@ -84,41 +88,53 @@ void parsed_loops( unsigned int* nlp, char** argv, Coil_t* coil )
         puts( "\n -INFO: The config file contains fewer coil loops than "
               "the number that was asked to be parsed in!" );
         puts( " -INFO: Parsed data structure reallocated!" );
-        data_realloc( *nlp, coil ); /* data reallocation */
+
+        realloc_coil( *nlp, coil );
     }
 }
 
-void data_realloc( unsigned int nlp, Coil_t* coil )
+void
+realloc_coil( unsigned int nlp, coil_t* coil )
 {
     coil->radius = realloc( coil->radius, nlp * sizeof( double* ) );
     coil->x_center = realloc( coil->x_center, nlp * sizeof( double* ) );
     coil->y_center = realloc( coil->y_center, nlp * sizeof( double* ) );
 }
 
-void init_data( Coil_t* coil, char** argv )
+void
+init_coil( coil_t* coil, char** argv )
 {
     coil->radius = calloc( atoi( argv[1] ), sizeof( double* ) );
     coil->x_center = calloc( atoi( argv[1] ), sizeof( double* ) );
     coil->y_center = calloc( atoi( argv[1] ), sizeof( double* ) );
 }
 
-unsigned int parser( Coil_t* coil, char** argv )
+void
+free_coil( coil_t* coil )
 {
-    /* open file & declare libyaml types */
+    free( coil->radius );
+    free( coil->x_center );
+    free( coil->y_center );
+}
+
+unsigned int
+parser( coil_t* coil, char** argv )
+{
+    /* Open file & declare libyaml types */
     FILE* fh = fopen( "data.yml", "r" );
     yaml_parser_t parser;
     yaml_event_t event;
 
     bool seq_status = 0;      /* IN or OUT of sequence index, init to OUT */
-    unsigned int map_seq = 0; /* index of mapping inside sequence */
+    unsigned int map_seq = 0; /* Index of mapping inside sequence */
 
-    init_prs( &fh, &parser ); /* initiliaze parser & open file */
+    init_prs( &fh, &parser ); /* Initiliaze parser & open file */
 
     do {
+        
+        parse_next( &parser, &event ); /* Parse new event */
 
-        parse_next( &parser, &event ); /* parse new event */
-
-        /* decide what to do with each event */
+        /* Decide what to do with each event */
         event_switch( &seq_status, &map_seq, coil, &parser, &event );
 
         if ( event.type != YAML_STREAM_END_EVENT ) {
@@ -128,7 +144,7 @@ unsigned int parser( Coil_t* coil, char** argv )
         if ( map_seq > atoi( argv[1] ) ) {
             break;
         }
-
+    
     } while ( event.type != YAML_STREAM_END_EVENT );
 
     clean_prs( &fh, &parser, &event ); /* clean parser & close file */
@@ -136,8 +152,9 @@ unsigned int parser( Coil_t* coil, char** argv )
     return map_seq;
 }
 
-void event_switch( bool* seq_status, unsigned int* map_seq, Coil_t* coil,
-                   yaml_parser_t* parser, yaml_event_t* event )
+void
+event_switch( bool* seq_status, unsigned int* map_seq, coil_t* coil,
+              yaml_parser_t* parser, yaml_event_t* event )
 {
     switch ( event->type ) {
         case YAML_STREAM_START_EVENT:
@@ -176,13 +193,14 @@ void event_switch( bool* seq_status, unsigned int* map_seq, Coil_t* coil,
     }
 }
 
-void to_data( bool* seq_status, unsigned int* map_seq, Coil_t* coil,
-              yaml_parser_t* parser, yaml_event_t* event )
+void
+to_data( bool* seq_status, unsigned int* map_seq, coil_t* coil,
+         yaml_parser_t* parser, yaml_event_t* event )
 {
     char* buf = (char*)event->data.scalar.value;
-    char* cb; /* char part buffer for strtod() */
+    char* cb; /* Char part buffer for strtod() */
 
-    /* dictionary */
+    /* Dictionary */
     char* cur = "cur";
     char* freq = "freq";
     char* loops = "loops";
@@ -194,22 +212,23 @@ void to_data( bool* seq_status, unsigned int* map_seq, Coil_t* coil,
         parse_next( parser, event );
         coil->freq = strtod( (char*)event->data.scalar.value, &cb );
     } else if ( ( *seq_status ) == true ) {
-        /* data from sequence of loops */
+        /* Data from sequence of loops */
         to_data_from_map( buf, map_seq, coil, parser, event );
     } else if ( !strcmp( buf, loops ) ) {
-        /* do nothing. "loops" is just the label of mapping's sequence */
+        /* Do nothing, "loops" is just the label of mapping's sequence */
     } else {
         printf( "\n -ERROR: Unknow variable in config file: %s\n", buf );
         exit( EXIT_FAILURE );
     }
 }
 
-void to_data_from_map( char* buf, unsigned int* map_seq, Coil_t* coil,
-                       yaml_parser_t* parser, yaml_event_t* event )
+void
+to_data_from_map( char* buf, unsigned int* map_seq, coil_t* coil,
+                  yaml_parser_t* parser, yaml_event_t* event )
 {
-    char* cb; /* char part buffer for strtod() */
+    char* cb; /* Char part buffer for strtod() */
 
-    /* dictionary */
+    /* Dictionary */
     char* rad = "radius";
     char* xcen = "x_center";
     char* ycen = "y_center";
@@ -232,44 +251,49 @@ void to_data_from_map( char* buf, unsigned int* map_seq, Coil_t* coil,
     }
 }
 
-void parse_next( yaml_parser_t* parser, yaml_event_t* event )
+void
+parse_next( yaml_parser_t* parser, yaml_event_t* event )
 {
-    /* parse next scalar. if wrong exit with error */
+    /* Parse next scalar. if wrong exit with error */
     if ( !yaml_parser_parse( parser, event ) ) {
         printf( "Parser error %d\n", parser->error );
         exit( EXIT_FAILURE );
     }
 }
 
-void init_prs( FILE** fh, yaml_parser_t* parser )
+void
+init_prs( FILE** fh, yaml_parser_t* parser )
 {
-    /* parser initilization */
+    /* Parser initilization */
     if ( !yaml_parser_initialize( parser ) ) {
         fputs( "Failed to initialize parser!\n", stderr );
     }
+
     if ( *fh == NULL ) {
         fputs( "Failed to open file!\n", stderr );
     }
 
-    yaml_parser_set_input_file( parser, *fh ); /* set input file */
+    yaml_parser_set_input_file( parser, *fh ); 
 }
 
-void clean_prs( FILE** fh, yaml_parser_t* parser, yaml_event_t* event )
+void
+clean_prs( FILE** fh, yaml_parser_t* parser, yaml_event_t* event )
 {
-    yaml_event_delete( event );   /* delete event */
-    yaml_parser_delete( parser ); /* delete parser */
-    fclose( *fh );                /* close file */
+    yaml_event_delete( event );   /* Delete event */
+    yaml_parser_delete( parser ); /* Delete parser */
+    fclose( *fh );                /* Close file */
 }
 
-void print_data( unsigned int nlps, Coil_t* coil )
+void
+print_data( unsigned int nlps, coil_t* coil )
 {
-    int i; /* counter */
     puts( "\n --- data structure after parsing ---" );
     printf( " current = %d\n", coil->cur );
     printf( " freq = %f\n", coil->freq );
+
     puts( " coil loops:" );
-        puts( "\t -----------------" );
-    for ( i = 0; i < nlps; i++ ) {
+    puts( "\t -----------------" );
+    for ( int i = 0; i < nlps; i++ ) {
         printf( "\t radius = %.2f\n", coil->radius[i] );
         printf( "\t x_center = %.2f\n", coil->x_center[i] );
         printf( "\t y_center = %.2f\n", coil->y_center[i] );
@@ -277,4 +301,4 @@ void print_data( unsigned int nlps, Coil_t* coil )
     }
 }
 
-/* end */
+/* End */
