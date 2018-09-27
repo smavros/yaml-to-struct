@@ -72,17 +72,18 @@ void parsed_loops( unsigned int* nlp, char** argv, Coil_t* coil )
 {
     if ( ( *nlp ) > atoi( argv[1] ) ) {
 
-        puts( "\n -Warning: More loops in config file than in arguments!\n" );
+        puts( "\n -INFO: The config file contains more coil loops than "
+              "the number that was asked to be parsed in!" );
         *nlp = atoi( argv[1] );
 
     } else if ( ( *nlp ) < atoi( argv[1] ) ) {
-
-        puts( "\n -Warning: More loops in arguments than in config file!" );
-        /*  in case of larger number of arg coils compared to the
+        /*  In case of larger number of arg coils compared to the
          *  configuration file denoted coils one must reallocate the coil
          *  in order to avoid overflow errors over data structure
          */
-        puts( " -Warning: Parsed data structure reallocated!\n" );
+        puts( "\n -INFO: The config file contains fewer coil loops than "
+              "the number that was asked to be parsed in!" );
+        puts( " -INFO: Parsed data structure reallocated!" );
         data_realloc( *nlp, coil ); /* data reallocation */
     }
 }
@@ -263,10 +264,11 @@ void clean_prs( FILE** fh, yaml_parser_t* parser, yaml_event_t* event )
 void print_data( unsigned int nlps, Coil_t* coil )
 {
     int i; /* counter */
-    puts( "--- data structure after parsing ---\n" );
-    printf( "current = %d\n", coil->cur );
-    printf( "freq = %f\n", coil->freq );
-    puts( "loops" );
+    puts( "\n --- data structure after parsing ---" );
+    printf( " current = %d\n", coil->cur );
+    printf( " freq = %f\n", coil->freq );
+    puts( " coil loops:" );
+        puts( "\t -----------------" );
     for ( i = 0; i < nlps; i++ ) {
         printf( "\t radius = %.2f\n", coil->radius[i] );
         printf( "\t x_center = %.2f\n", coil->x_center[i] );
