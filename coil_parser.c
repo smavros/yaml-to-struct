@@ -75,13 +75,13 @@ main( int argc, char** argv )
 void
 parsed_loops( unsigned int* nlp, char** argv, coil_t* coil )
 {
-    if ( ( *nlp ) > atoi( argv[1] ) ) {
+    if ( ( *nlp ) > (unsigned int)atoi( argv[1] ) ) {
 
         puts( "\n -INFO: The config file contains more coil loops than "
               "the number that was asked to be parsed in!" );
         *nlp = atoi( argv[1] );
 
-    } else if ( ( *nlp ) < atoi( argv[1] ) ) {
+    } else if ( ( *nlp ) < (unsigned int)atoi( argv[1] ) ) {
         /*  In case of larger number of arg coils compared to the
          *  configuration file denoted coils one must reallocate the coil
          *  in order to avoid overflow errors over data structure
@@ -142,7 +142,7 @@ parser( coil_t* coil, char** argv )
             yaml_event_delete( &event );
         }
 
-        if ( map_seq > atoi( argv[1] ) ) {
+        if ( map_seq > (unsigned int)atoi( argv[1] ) ) {
             break;
         }
     
@@ -291,7 +291,7 @@ print_data( unsigned int nlps, coil_t* coil )
 
     puts( " coil loops:" );
     puts( "\t -----------------" );
-    for ( int i = 0; i < nlps; i++ ) {
+    for ( int i = 0; i < (int)nlps; i++ ) {
         printf( "\t radius = %.2f\n", coil->radius[i] );
         printf( "\t x_center = %.2f\n", coil->x_center[i] );
         printf( "\t y_center = %.2f\n", coil->y_center[i] );
