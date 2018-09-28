@@ -27,17 +27,17 @@ void free_coil( coil_t* coil );
 unsigned int parser( coil_t* coil, char** argv );
 
 /* Parser utilities */
-void init_prs( FILE** fh, yaml_parser_t* parser );
+void init_prs( FILE* fp, yaml_parser_t* parser );
 void parse_next( yaml_parser_t* parser, yaml_event_t* event );
-void clean_prs( FILE** fh, yaml_parser_t* parser, yaml_event_t* event );
+void clean_prs( FILE* fp, yaml_parser_t* parser, yaml_event_t* event );
 
 /* Parser actions */
 void event_switch( bool* seq_status, unsigned int* map_seq, coil_t* coil,
-                   yaml_parser_t* parser, yaml_event_t* event );
+                   yaml_parser_t* parser, yaml_event_t* event, FILE* fp );
 void to_data( bool* seq_status, unsigned int* map_seq, coil_t* coil,
-              yaml_parser_t* parser, yaml_event_t* event );
+              yaml_parser_t* parser, yaml_event_t* event, FILE* fp );
 void to_data_from_map( char* buf, unsigned int* map_seq, coil_t* coil,
-                       yaml_parser_t* parser, yaml_event_t* event );
+                       yaml_parser_t* parser, yaml_event_t* event, FILE* fp );
 
 /* Post parsing utilities */
 void parsed_loops( unsigned int* nlp, char** argv, coil_t* coil );
@@ -122,21 +122,21 @@ unsigned int
 parser( coil_t* coil, char** argv )
 {
     /* Open file & declare libyaml types */
-    FILE* fh = fopen( "data.yml", "r" );
+    FILE* fp = fopen( "data.yml", "r" );
     yaml_parser_t parser;
     yaml_event_t event;
 
     bool seq_status = 0;      /* IN or OUT of sequence index, init to OUT */
     unsigned int map_seq = 0; /* Index of mapping inside sequence */
 
-    init_prs( &fh, &parser ); /* Initiliaze parser & open file */
+    init_prs( fp, &parser );  /* Initiliaze parser & open file */
 
     do {
         
         parse_next( &parser, &event ); /* Parse new event */
 
         /* Decide what to do with each event */
-        event_switch( &seq_status, &map_seq, coil, &parser, &event );
+        event_switch( &seq_status, &map_seq, coil, &parser, &event, fp );
 
         if ( event.type != YAML_STREAM_END_EVENT ) {
             yaml_event_delete( &event );
@@ -148,14 +148,14 @@ parser( coil_t* coil, char** argv )
     
     } while ( event.type != YAML_STREAM_END_EVENT );
 
-    clean_prs( &fh, &parser, &event ); /* clean parser & close file */
+    clean_prs( fp, &parser, &event ); /* clean parser & close file */
 
     return map_seq;
 }
 
 void
 event_switch( bool* seq_status, unsigned int* map_seq, coil_t* coil,
-              yaml_parser_t* parser, yaml_event_t* event )
+              yaml_parser_t* parser, yaml_event_t* event, FILE* fp )
 {
     switch ( event->type ) {
         case YAML_STREAM_START_EVENT:
@@ -185,7 +185,7 @@ event_switch( bool* seq_status, unsigned int* map_seq, coil_t* coil,
             exit( EXIT_FAILURE );
             break;
         case YAML_SCALAR_EVENT:
-            to_data( seq_status, map_seq, coil, parser, event );
+            to_data( seq_status, map_seq, coil, parser, event, fp );
             break;
         case YAML_NO_EVENT:
             puts( " ERROR: No event!" );
@@ -196,7 +196,7 @@ event_switch( bool* seq_status, unsigned int* map_seq, coil_t* coil,
 
 void
 to_data( bool* seq_status, unsigned int* map_seq, coil_t* coil,
-         yaml_parser_t* parser, yaml_event_t* event )
+         yaml_parser_t* parser, yaml_event_t* event, FILE* fp )
 {
     char* buf = (char*)event->data.scalar.value;
 
@@ -206,25 +206,29 @@ to_data( bool* seq_status, unsigned int* map_seq, coil_t* coil,
     char* loops = "loops";
 
     if ( !strcmp( buf, cur ) ) {
+        yaml_event_delete( event ); 
         parse_next( parser, event );
         coil->cur = atoi( (char*)event->data.scalar.value );
     } else if ( !strcmp( buf, freq ) ) {
+        yaml_event_delete( event ); 
         parse_next( parser, event );
         coil->freq = strtod( (char*)event->data.scalar.value, NULL );
     } else if ( ( *seq_status ) == true ) {
         /* Data from sequence of loops */
-        to_data_from_map( buf, map_seq, coil, parser, event );
+        to_data_from_map( buf, map_seq, coil, parser, event, fp );
     } else if ( !strcmp( buf, loops ) ) {
         /* Do nothing, "loops" is just the label of mapping's sequence */
     } else {
         printf( "\n -ERROR: Unknow variable in config file: %s\n", buf );
+        free_coil( coil );
+        clean_prs( fp, parser, event ); 
         exit( EXIT_FAILURE );
     }
 }
 
 void
 to_data_from_map( char* buf, unsigned int* map_seq, coil_t* coil,
-                  yaml_parser_t* parser, yaml_event_t* event )
+                  yaml_parser_t* parser, yaml_event_t* event, FILE* fp )
 {
     /* Dictionary */
     char* rad = "radius";
@@ -232,19 +236,24 @@ to_data_from_map( char* buf, unsigned int* map_seq, coil_t* coil,
     char* ycen = "y_center";
 
     if ( !strcmp( buf, rad ) ) {
+        yaml_event_delete( event ); 
         parse_next( parser, event );
         coil->radius[( *map_seq ) - 1] =
             strtod( (char*)event->data.scalar.value, NULL );
     } else if ( !strcmp( buf, xcen ) ) {
+        yaml_event_delete( event ); 
         parse_next( parser, event );
         coil->x_center[( *map_seq ) - 1] =
             strtod( (char*)event->data.scalar.value, NULL );
     } else if ( !strcmp( buf, ycen ) ) {
+        yaml_event_delete( event ); 
         parse_next( parser, event );
         coil->y_center[( *map_seq ) - 1] =
             strtod( (char*)event->data.scalar.value, NULL );
     } else {
         printf( "\n -ERROR: Unknow variable in config file: %s\n", buf );
+        free_coil( coil );
+        clean_prs( fp, parser, event ); 
         exit( EXIT_FAILURE );
     }
 }
@@ -260,26 +269,26 @@ parse_next( yaml_parser_t* parser, yaml_event_t* event )
 }
 
 void
-init_prs( FILE** fh, yaml_parser_t* parser )
+init_prs( FILE* fp, yaml_parser_t* parser )
 {
     /* Parser initilization */
     if ( !yaml_parser_initialize( parser ) ) {
         fputs( "Failed to initialize parser!\n", stderr );
     }
 
-    if ( *fh == NULL ) {
+    if ( fp == NULL ) {
         fputs( "Failed to open file!\n", stderr );
     }
 
-    yaml_parser_set_input_file( parser, *fh ); 
+    yaml_parser_set_input_file( parser, fp ); 
 }
 
 void
-clean_prs( FILE** fh, yaml_parser_t* parser, yaml_event_t* event )
+clean_prs( FILE* fp, yaml_parser_t* parser, yaml_event_t* event )
 {
     yaml_event_delete( event );   /* Delete event */
     yaml_parser_delete( parser ); /* Delete parser */
-    fclose( *fh );                /* Close file */
+    fclose( fp );                 /* Close file */
 }
 
 void
