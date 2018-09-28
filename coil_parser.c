@@ -2,7 +2,6 @@
  * author: smavros
  */
 
-#include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <yaml.h>
@@ -49,8 +48,10 @@ void print_data( unsigned int nlps, coil_t* coil );
 int
 main( int argc, char** argv )
 {
-    assert( argc == 2 );           /* Check args number */
-    assert( atoi( argv[1] ) > 0 ); /* Check args validity */
+    if ( argc != 2 || atoi( argv[1] ) <= 0 ) {
+        puts( " Arguments: give number of coil loops to be parsed" );
+        return EXIT_FAILURE; 
+    }
 
     coil_t coil; /* Create my coil */
 
@@ -198,7 +199,6 @@ to_data( bool* seq_status, unsigned int* map_seq, coil_t* coil,
          yaml_parser_t* parser, yaml_event_t* event )
 {
     char* buf = (char*)event->data.scalar.value;
-    char* cb; /* Char part buffer for strtod() */
 
     /* Dictionary */
     char* cur = "cur";
@@ -210,7 +210,7 @@ to_data( bool* seq_status, unsigned int* map_seq, coil_t* coil,
         coil->cur = atoi( (char*)event->data.scalar.value );
     } else if ( !strcmp( buf, freq ) ) {
         parse_next( parser, event );
-        coil->freq = strtod( (char*)event->data.scalar.value, &cb );
+        coil->freq = strtod( (char*)event->data.scalar.value, NULL );
     } else if ( ( *seq_status ) == true ) {
         /* Data from sequence of loops */
         to_data_from_map( buf, map_seq, coil, parser, event );
@@ -226,8 +226,6 @@ void
 to_data_from_map( char* buf, unsigned int* map_seq, coil_t* coil,
                   yaml_parser_t* parser, yaml_event_t* event )
 {
-    char* cb; /* Char part buffer for strtod() */
-
     /* Dictionary */
     char* rad = "radius";
     char* xcen = "x_center";
@@ -236,15 +234,15 @@ to_data_from_map( char* buf, unsigned int* map_seq, coil_t* coil,
     if ( !strcmp( buf, rad ) ) {
         parse_next( parser, event );
         coil->radius[( *map_seq ) - 1] =
-            strtod( (char*)event->data.scalar.value, &cb );
+            strtod( (char*)event->data.scalar.value, NULL );
     } else if ( !strcmp( buf, xcen ) ) {
         parse_next( parser, event );
         coil->x_center[( *map_seq ) - 1] =
-            strtod( (char*)event->data.scalar.value, &cb );
+            strtod( (char*)event->data.scalar.value, NULL );
     } else if ( !strcmp( buf, ycen ) ) {
         parse_next( parser, event );
         coil->y_center[( *map_seq ) - 1] =
-            strtod( (char*)event->data.scalar.value, &cb );
+            strtod( (char*)event->data.scalar.value, NULL );
     } else {
         printf( "\n -ERROR: Unknow variable in config file: %s\n", buf );
         exit( EXIT_FAILURE );
